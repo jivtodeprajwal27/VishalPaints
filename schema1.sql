@@ -5,11 +5,15 @@ CREATE TABLE products (
     product_name VARCHAR(255) NOT NULL,
     description TEXT,
     yield int,
+    viscosity DECIMAL(10, 2) NOT NULL,
+    weight_lit DECIMAL(10, 2) NOT NULL,
+	container_cost DECIMAL(10, 2) NOT NULL,
+	transport_cost DECIMAL(10, 2) NOT NULL,
+	sales_cost DECIMAL(10, 2) NOT NULL,
+	misc_cost DECIMAL(10, 2) NOT NULL,
     total_rate DECIMAL(10, 2) NOT NULL
-    
 );
 drop table products;
-
 CREATE TABLE raw_materials (
 	id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -20,12 +24,14 @@ CREATE TABLE raw_materials (
 CREATE TABLE raw_material_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     raw_material_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     date DATE NOT NULL,
+    mat_type VARCHAR(255) NOT NULL,
     FOREIGN KEY (raw_material_id) REFERENCES raw_materials(id)
 );
 
-drop table raw_materials;
+drop table raw_material_history;
 INSERT INTO raw_materials (name, price, mat_type) VALUES
     ('P1', 227.00, 'Pigment'),
     ('P11', 109.00, 'Pigment'),
@@ -86,10 +92,9 @@ CREATE TABLE product_raw_materials (
 
 
 select * from raw_materials;
+SELECT * FROM raw_materials WHERE deleted = 0;
 
-describe products;
-
-select* from products;
+ALTER TABLE raw_materials ADD COLUMN deleted TINYINT(1) DEFAULT 0;
 
 ALTER TABLE products MODIFY total_rate DECIMAL(15,2);
 
@@ -100,3 +105,17 @@ ADD COLUMN container_cost DECIMAL(10, 2) NOT NULL,
 ADD COLUMN transport_cost DECIMAL(10, 2) NOT NULL,
 ADD COLUMN sales_cost DECIMAL(10, 2) NOT NULL,
 ADD COLUMN misc_cost DECIMAL(10, 2) NOT NULL;
+
+DELIMITER //
+
+CREATE TRIGGER before_raw_material_update
+BEFORE UPDATE ON raw_materials
+FOR EACH ROW
+BEGIN
+    IF OLD.price != NEW.price THEN
+        INSERT INTO raw_material_history (raw_material_id, name, price, date, mat_type)
+        VALUES (OLD.id, OLD.name, OLD.price, CURDATE(), OLD.mat_type);
+    END IF;
+END//
+
+DELIMITER ;
