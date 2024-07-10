@@ -9,12 +9,22 @@ CREATE TABLE products (
     
 );
 drop table products;
+
 CREATE TABLE raw_materials (
 	id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     mat_type VARCHAR(255) NOT NULL
 );
+
+CREATE TABLE raw_material_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    raw_material_id INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    date DATE NOT NULL,
+    FOREIGN KEY (raw_material_id) REFERENCES raw_materials(id)
+);
+
 drop table raw_materials;
 INSERT INTO raw_materials (name, price, mat_type) VALUES
     ('P1', 227.00, 'Pigment'),

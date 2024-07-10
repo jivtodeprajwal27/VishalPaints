@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Raw Material History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        function searchRawMaterials() {
+            const searchTerm = document.getElementById('searchBar').value;
+            window.location.href = `/raw_material_history?search=${encodeURIComponent(searchTerm)}`;
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Inventory Management System</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('home') }}">Home</a></li>
+                <li><a href="{{ url_for('product_rate_calculator') }}">Product Rate Calculator</a></li>
+                <li><a href="{{ url_for('product_history') }}">Product History</a></li>
+                <li><a href="{{ url_for('raw_material_management') }}">Raw Material Management</a></li>
+                <li><a href="{{ url_for('inventory_details') }}">Inventory Details</a></li>
+                <li><a href="{{ url_for('raw_material_history') }}">Raw Material History</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h1>Raw Material History</h1>
+        <div>
+            <input type="text" id="searchBar" placeholder="Search for raw materials..." value="{{ search_term }}">
+            <button onclick="searchRawMaterials()">Search</button>
+        </div>
+
+        {% if search_results %}
+        <h2>Search Results</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>History</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for material in search_results %}
+                <tr>
+                    <td>{{ material.name }}</td>
+                    <td>{{ material.mat_type }}</td>
+                    <td>{{ material.price }}</td>
+                    <td>
+                        <ul>
+                            {% for history in material.history %}
+                            <li>{{ history.date }}: {{ history.price }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <h2>All Raw Materials</h2>
+        {% for mat_type, materials in materials_by_type.items() %}
+        <h3>{{ mat_type }}</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>History</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for material in materials %}
+                <tr>
+                    <td>{{ material.name }}</td>
+                    <td>{{ material.price }}</td>
+                    <td>
+                        <ul>
+                            {% for history in material.history %}
+                            <li>{{ history.date }}: {{ history.price }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+    </main>
+</body>
+</html>

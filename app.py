@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 import re
+from datetime import date
 from mysql.connector import connect
 import io
 from io import BytesIO
@@ -17,7 +18,7 @@ from reportlab.pdfgen import canvas
 app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'rishi@271'
+app.config['MYSQL_PASSWORD'] = 'aloobhujiya'
 app.config['MYSQL_DB'] = 'vishalpaints'
 
 mysql = MySQL(app)
@@ -39,6 +40,7 @@ def product_rate_calculator():
         sales_cost = float(request.form['sales_cost'])
         misc_cost = float(request.form['misc_cost'])
         total_rate = float(request.form['total_rate'])
+        
         cur = mysql.connection.cursor()
         cur.execute(
             """
@@ -51,9 +53,10 @@ def product_rate_calculator():
         )
         mysql.connection.commit()
         cur.close()
-        material_types = request.form.getlist('materialType1')
-        raw_materials = request.form.getlist('materialName1')
-        quantities = request.form.getlist('quantity1')
+
+        material_types = request.form.getlist('materialType[]')
+        raw_materials = request.form.getlist('materialName[]')
+        quantities = request.form.getlist('quantity[]')
         
         conn = mysql.connection
         cur = conn.cursor()
@@ -113,14 +116,22 @@ def product_rate_calculator():
 
         buffer.seek(0)
         return send_file(buffer, as_attachment=True, download_name='invoice.pdf', mimetype='application/pdf')
-        # return redirect(url_for('product_history'))
 
     cur = mysql.connection.cursor()
-    cur.execute("SELECT name, mat_type FROM raw_materials")
+    cur.execute("SELECT name, mat_type, price FROM raw_materials WHERE deleted = FALSE")
     raw_materials = cur.fetchall()
     cur.close()
 
-    return render_template('product_rate_calculator.html', raw_materials=raw_materials)
+    materials_by_type = {}
+    for material in raw_materials:
+        mat_name, mat_type, price = material
+        if mat_type not in materials_by_type:
+            materials_by_type[mat_type] = []
+        materials_by_type[mat_type].append({'name': mat_name, 'price': price})
+
+    return render_template('product_rate_calculator.html', materials_by_type=materials_by_type)
+
+
 
 @app.route('/product_history')
 def product_history():
@@ -175,15 +186,42 @@ def inventory_details():
     cur.close()
     return render_template('inventory_details.html', raw_materials=raw_materials)
 
-@app.route('/raw_material_history')
+@app.route('/raw_material_history', methods=['GET'])
 def raw_material_history():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM raw_materials")
-    raw_materials = cur.fetchall()
-    cur.close()
-    return render_template('raw_material_history.html', raw_materials=raw_materials)
+    search_term = request.args.get('search', '')
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    search_results = []
+    if search_term:
+        cursor.execute("SELECT * FROM raw_materials WHERE name LIKE %s OR mat_type LIKE %s", 
+                       ('%' + search_term + '%', '%' + search_term + '%'))
+        search_results = cursor.fetchall()
 
+        # Fetching historical prices for each material in search results
+        for material in search_results:
+            cursor.execute("SELECT * FROM raw_material_history WHERE raw_material_id = %s ORDER BY date DESC", (material['id'],))
+            material['history'] = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM raw_materials")
+    raw_materials = cursor.fetchall()
+
+    # Grouping materials by type
+    materials_by_type = {}
+    for material in raw_materials:
+        if material['mat_type'] not in materials_by_type:
+            materials_by_type[material['mat_type']] = []
+        materials_by_type[material['mat_type']].append(material)
+
+    # Fetching historical prices for each material
+    for mat_type, materials in materials_by_type.items():
+        for material in materials:
+            cursor.execute("SELECT * FROM raw_material_history WHERE raw_material_id = %s ORDER BY date DESC", (material['id'],))
+            material['history'] = cursor.fetchall()
+
+    return render_template('raw_material_history.html', 
+                           materials_by_type=materials_by_type,
+                           search_results=search_results,
+                           search_term=search_term)
 
 @app.route('/generate_invoice', methods=['POST'])
 def generate_invoice():
@@ -260,5 +298,6 @@ def generate_invoice():
 
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='invoice.pdf', mimetype='application/pdf')
+
 if __name__ == '__main__':
     app.run(debug=True)
