@@ -4,150 +4,23 @@
     <meta charset="UTF-8">
     <title>Product Rate Calculator - Inventory Management System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <header>
-        <h1>Inventory Management System</h1>
-        <nav>
-            <ul>
-                <li><a href="{{ url_for('home') }}">Home</a></li>
-                <li><a href="{{ url_for('product_rate_calculator') }}">Product Rate Calculator</a></li>
-                <li><a href="{{ url_for('product_history') }}">Product History</a></li>
-                <li><a href="{{ url_for('raw_material_management') }}">Raw Material Management</a></li>
-                <li><a href="{{ url_for('inventory_details') }}">Inventory Details</a></li>
-                <li><a href="{{ url_for('raw_material_history') }}">Raw Material History</a></li>
-        </ul>
-        </nav>
-    </header>
-    <main>
-        <h2>Product Rate Calculator</h2>
-        <form method="POST" action="{{ url_for('product_rate_calculator') }}">
-            <label for="product_name">Product Name:</label>
-            <input type="text" id="product_name" name="product_name" required>
-            
-            <label for="description">Description:</label>
-            <textarea id="description" name="description"></textarea>
-            
-            <label for="yield">Yield:</label>
-            <input type="number" id="yield" name="yield" required>
-            
-            <label for="viscosity">Viscosity:</label>
-            <input type="number" id="viscosity" name="viscosity" required>
-            
-            <label for="weight_lit">Weight / Lit:</label>
-            <input type="number" id="weight_lit" name="weight_lit" required>
-            
-            <label for="container_cost">Container Cost:</label>
-            <input type="number" id="container_cost" name="container_cost" required>
-            
-            <label for="transport_cost">Transport Cost:</label>
-            <input type="number" id="transport_cost" name="transport_cost" required>
-            
-            <label for="sales_cost">Sales Cost:</label>
-            <input type="number" id="sales_cost" name="sales_cost" required>
-            
-            <label for="misc_cost">Misc. Cost:</label>
-            <input type="number" id="misc_cost" name="misc_cost" required>
-            
-            <label for="raw_materials">Raw Materials:</label>
-            <div id="materialFields">
-                <div class="materialField">
-                    <label for="materialType1">Material Type:</label>
-                    <select id="materialType1" name="materialType1" onchange="populateMaterialNames('materialType1', 'materialName1')">
-                        <option value="Pigment">Pigment</option>
-                        <option value="Additive">Additive</option>
-                        <option value="Resin">Resin</option>
-                        <option value="Thinner">Thinner</option>
-                    </select>
-                    <label for="materialName1">Material Name:</label>
-                    <select id="materialName1" name="materialName1">
-                    </select>
-                    <label for="quantity1">Quantity:</label>
-                    <input type="number" id="quantity1" name="quantity1" placeholder="Enter quantity...">
-                </div>
-            </div>
-            <button type="button" onclick="addMaterialField()">Add Material</button>
-            <button type="button" onclick="calculateTotalRate()">Calculate Total Rate</button>
-            <div id="result"></div>
-            <button type="submit">Submit</button>
-            <button type="button" onclick="generateInvoice()">Generate Invoice</button>
-        </form>
-    </main>
-
     <script>
-        const materialPrices = {
-            Pigment: {
-                "P1": 227,
-                "P11": 109,
-                "P6": 170,
-                "P3": 560,
-                "P4": 158,
-                "P5": 109,
-                "P60": 59,
-                "P7": 115,
-                "P100": 35,
-                "P50": 125,
-                "P70": 130,
-                "Redoxide Powder": 15,
-                "White Whiting": 25,
-                "Talc": 104
-
-            },
-            Additive: {
-                "A1": 162,
-                "A2": 150,
-                "HCO": 150,
-                "ACE": 600,
-                "PINCOIL": 150,
-                "BRIGHT": 600,
-                "CATALYST MATT": 225,
-                "ICLAY": 308,
-                "ICLAY JELLY 10%": 250,
-                "LEAK 10%": 108,
-                "OMEGA": 55,
-                "DH": 134
-            },
-            Resin: {
-                "M1 50%": 125,
-                "M1 70%": 124,
-                "M6": 206,
-                "M0 70%": 220,
-                "MD": 129,
-                "MD 60%": 125,
-                "R 920": 160,
-                "DBTL": 40,
-                "927": 109,
-                "1030": 135
-
-            },
-            Thinner: {
-                "S1": 100,
-                "C1": 1,
-                "S6": 128.5,
-                "S20": 47.5,
-                "BA(kg)": 135,
-                "BA(Lit)": 116.5,
-                "ETHYLE": 230               
-            }
-        };
-
-        const materialNames = {
-            Pigment: ["P1", "P11", "P6", "P3", "P4", "P5", "P60", "P7", "P100", "P50", "P70", "Redoxide Powder", "White Whiting", "Talc"],
-            Additive: ["A1", "A2", "HCO", "ACE", "PINCOIL", "BRIGHT", "CATALYST MATT", "ICLAY", "ICLAY JELLY 10%", "LEAK 10%", "OMEGA", "DH"],
-            Resin: ["M1 50%", "M1 70%", "M6", "M0 70%", "MD", "MD 60%", "R 920", "DBTL", "927", "1030"],
-            Thinner: ["S1", "C1", "S6", "S20", "BA(kg)", "BA(Lit)", "ETHYLE"]
-        };
+        const materialsByType = {{ materials_by_type | tojson }};
 
         function populateMaterialNames(materialTypeSelectId, materialNameSelectId) {
             const materialType = document.getElementById(materialTypeSelectId).value;
             const materialNameSelect = document.getElementById(materialNameSelectId);
             materialNameSelect.innerHTML = ''; 
-            materialNames[materialType].forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                materialNameSelect.appendChild(option);
-            });
+
+            if (materialsByType[materialType]) {
+                materialsByType[materialType].forEach(material => {
+                    const option = document.createElement('option');
+                    option.value = material.name;
+                    option.textContent = material.name;
+                    option.dataset.price = material.price;
+                    materialNameSelect.appendChild(option);
+                });
+            }
         }
 
         function addMaterialField() {
@@ -157,21 +30,21 @@
             newField.className = 'materialField';
             newField.innerHTML = `
                 <label for="materialType${newIndex}">Material Type:</label>
-                <select id="materialType${newIndex}" onchange="populateMaterialNames('materialType${newIndex}', 'materialName${newIndex}')">
-                    <option value="Pigment">Pigment</option>
-                    <option value="Additive">Additive</option>
-                    <option value="Resin">Resin</option>
-                    <option value="Thinner">Thinner</option>
+                <select id="materialType${newIndex}" name="materialType[]" onchange="populateMaterialNames('materialType${newIndex}', 'materialName${newIndex}')">
+                    <option value="" selected disabled>Select Material Type</option>
+                    {% for mat_type in materials_by_type.keys() %}
+                        <option value="{{ mat_type }}">{{ mat_type }}</option>
+                    {% endfor %}
                 </select>
                 <label for="materialName${newIndex}">Material Name:</label>
-                <select id="materialName${newIndex}">
+                <select id="materialName${newIndex}" name="materialName[]">
                 </select>
                 <label for="quantity${newIndex}">Quantity:</label>
-                <input type="number" id="quantity${newIndex}" placeholder="Enter quantity...">
+                <input type="number" id="quantity${newIndex}" name="quantity[]" placeholder="Enter quantity...">
             `;
             materialFields.appendChild(newField);
-            populateMaterialNames(`materialType${newIndex}`, `materialName${newIndex}`);
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             populateMaterialNames('materialType1', 'materialName1');
         });
@@ -181,13 +54,13 @@
             let rawMaterialsRate = 0;
 
             materialFields.forEach((field, index) => {
-                const materialName = document.getElementById(`materialName${index + 1}`).value;
-                const materialType = document.getElementById(`materialType${index + 1}`).value;
-                const quantity = parseInt(document.getElementById(`quantity${index + 1}`).value);
-                const price=materialPrices[materialType][materialName];
+                const materialNameSelect = document.getElementById(`materialName${index + 1}`);
+                const quantity = parseInt(document.getElementById(`quantity${index + 1}`).value) || 0;
+                const price = parseFloat(materialNameSelect.options[materialNameSelect.selectedIndex]?.dataset.price) || 0;
                 const rate = quantity * price;
-                rawMaterialsRate+=rate;
+                rawMaterialsRate += rate;
             });
+
             const containerCost = parseFloat(document.getElementById('container_cost').value) || 0;
             const transportCost = parseFloat(document.getElementById('transport_cost').value) || 0;
             const salesCost = parseFloat(document.getElementById('sales_cost').value) || 0;
@@ -201,8 +74,8 @@
             totalRateInput.name = 'total_rate';
             totalRateInput.value = totalRate.toFixed(2);
             document.querySelector('form').appendChild(totalRateInput);
-
         }
+
         function generateInvoice() {
             const rateForm = document.getElementById('rateForm');
             rateForm.action = '/generate_invoice';
@@ -210,5 +83,76 @@
             rateForm.submit();
         }
     </script>
+</head>
+<body>
+    <header>
+        <h1>Inventory Management System</h1>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('home') }}">Home</a></li>
+                <li><a href="{{ url_for('product_rate_calculator') }}">Product Rate Calculator</a></li>
+                <li><a href="{{ url_for('product_history') }}">Product History</a></li>
+                <li><a href="{{ url_for('raw_material_management') }}">Raw Material Management</a></li>
+                <li><a href="{{ url_for('inventory_details') }}">Inventory Details</a></li>
+                <li><a href="{{ url_for('raw_material_history') }}">Raw Material History</a></li>
+        </ul>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h1>Product Rate Calculator</h1>
+        <form id="rateForm" method="post">
+            <!-- Existing input fields for product details -->
+            <label for="product_name">Product Name:</label>
+            <input type="text" id="product_name" name="product_name" required>
+
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" required></textarea>
+
+            <label for="yield">Yield:</label>
+            <input type="number" id="yield" name="yield" required>
+
+            <label for="viscosity">Viscosity:</label>
+            <input type="number" step="0.01" id="viscosity" name="viscosity" required>
+
+            <label for="weight_lit">Weight / Lit:</label>
+            <input type="number" step="0.01" id="weight_lit" name="weight_lit" required>
+
+            <label for="container_cost">Container Cost:</label>
+            <input type="number" step="0.01" id="container_cost" name="container_cost" required>
+
+            <label for="transport_cost">Transport Cost:</label>
+            <input type="number" step="0.01" id="transport_cost" name="transport_cost" required>
+
+            <label for="sales_cost">Sales Cost:</label>
+            <input type="number" step="0.01" id="sales_cost" name="sales_cost" required>
+
+            <label for="misc_cost">Misc. Cost:</label>
+            <input type="number" step="0.01" id="misc_cost" name="misc_cost" required>
+
+            <label for="raw_materials">Raw Materials:</label>
+            <div id="materialFields">
+                <div class="materialField">
+                    <label for="materialType1">Material Type:</label>
+                    <select id="materialType1" name="materialType[]" onchange="populateMaterialNames('materialType1', 'materialName1')">
+                        <option value="" selected disabled>Select Material Type</option>
+                        {% for mat_type in materials_by_type.keys() %}
+                            <option value="{{ mat_type }}">{{ mat_type }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="materialName1">Material Name:</label>
+                    <select id="materialName1" name="materialName[]">
+                    </select>
+                    <label for="quantity1">Quantity:</label>
+                    <input type="number" id="quantity1" name="quantity[]" placeholder="Enter quantity...">
+                </div>
+            </div>
+            <button type="button" onclick="addMaterialField()">Add Material</button>
+            <button type="button" onclick="calculateTotalRate()">Calculate Total Rate</button>
+            <div id="result"></div>
+            <button type="submit">Submit</button>
+            <button type="button" onclick="generateInvoice()">Generate Invoice</button>
+        </form>
+    </main>
 </body>
 </html>
